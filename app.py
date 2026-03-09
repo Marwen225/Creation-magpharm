@@ -616,33 +616,37 @@ def main():
 
     menu = st.sidebar.radio("Navigation", ["Créer un Médecin", "Créer une Pharmacie"])
     st.sidebar.markdown("---")
-    st.sidebar.metric("Médecins en attente", len(st.session_state.doctors))
-    st.sidebar.metric("Pharmacies en attente", len(st.session_state.pharmacies))
+    st.sidebar.metric("Mes médecins (session)", len(st.session_state.doctors))
+    st.sidebar.metric("Mes pharmacies (session)", len(st.session_state.pharmacies))
 
-    # Show existing record counts from files
-    existing_docs = load_existing_records(MEDECINS_FILE, "Contacts")
-    existing_pha = load_existing_records(PHARMACIES_FILE, "Comptes")
-    n_docs = len(existing_docs.dropna(subset=["name"])) if not existing_docs.empty and "name" in existing_docs.columns else 0
-    n_pha = len(existing_pha.dropna(subset=["name"])) if not existing_pha.empty and "name" in existing_pha.columns else 0
-    st.sidebar.caption(f"📂 Fichiers : {n_docs} médecins / {n_pha} pharmacies")
-
-    # Download filled Excel files
+    # --- Admin section (password-protected) ---
     st.sidebar.markdown("---")
-    st.sidebar.subheader("📥 Télécharger les fichiers")
-    with open(MEDECINS_FILE, "rb") as f:
-        st.sidebar.download_button(
-            f"Médecins.xlsx ({n_docs} fiches)",
-            f.read(),
-            file_name="Médecins.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    with open(PHARMACIES_FILE, "rb") as f:
-        st.sidebar.download_button(
-            f"Pharmacies.xlsx ({n_pha} fiches)",
-            f.read(),
-            file_name="Pharmacies.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
+    st.sidebar.subheader("🔒 Espace Admin")
+    admin_pwd = st.sidebar.text_input("Mot de passe", type="password", key="admin_pwd")
+    if admin_pwd == "magpharm2026":
+        existing_docs = load_existing_records(MEDECINS_FILE, "Contacts")
+        existing_pha = load_existing_records(PHARMACIES_FILE, "Comptes")
+        n_docs = len(existing_docs.dropna(subset=["name"])) if not existing_docs.empty and "name" in existing_docs.columns else 0
+        n_pha = len(existing_pha.dropna(subset=["name"])) if not existing_pha.empty and "name" in existing_pha.columns else 0
+        st.sidebar.caption(f"📂 Total : {n_docs} médecins / {n_pha} pharmacies")
+
+        st.sidebar.subheader("📥 Télécharger les fichiers")
+        with open(MEDECINS_FILE, "rb") as f:
+            st.sidebar.download_button(
+                f"Médecins.xlsx ({n_docs} fiches)",
+                f.read(),
+                file_name="Médecins.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        with open(PHARMACIES_FILE, "rb") as f:
+            st.sidebar.download_button(
+                f"Pharmacies.xlsx ({n_pha} fiches)",
+                f.read(),
+                file_name="Pharmacies.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+    elif admin_pwd:
+        st.sidebar.error("Mot de passe incorrect")
 
     if menu == "Créer un Médecin":
         doctor_form()
