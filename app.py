@@ -367,14 +367,21 @@ def doctor_form():
                 "property_product_pricelist": pricelist or "",
                 "static_portfolio_user_ids": delegate.strip(),
             }
+            row_df = pd.DataFrame([row])
+            try:
+                r_start, r_end = append_to_excel(
+                    MEDECINS_FILE, "Contacts", DOCTOR_COLUMNS, row_df,
+                )
+                st.success(f"✅ Médecin **{row['name']}** enregistré dans Médecins.xlsx (ligne {r_start}) !")
+            except Exception as exc:
+                st.error(f"❌ Erreur d'écriture : {exc}")
             st.session_state.doctors = pd.concat(
-                [st.session_state.doctors, pd.DataFrame([row])], ignore_index=True
+                [st.session_state.doctors, row_df], ignore_index=True
             )
-            st.success(f"✅ Médecin **{row['name']}** ajouté !")
 
     # --- Preview ---
     if not st.session_state.doctors.empty:
-        st.subheader(f"📋 Médecins en attente ({len(st.session_state.doctors)})")
+        st.subheader(f"📋 Médecins ajoutés cette session ({len(st.session_state.doctors)})")
         st.dataframe(
             st.session_state.doctors[
                 ["name", "doctor_speciality_id", "doctor_status",
@@ -384,31 +391,15 @@ def doctor_form():
             use_container_width=True, hide_index=True,
         )
 
-        col_a, col_b, col_c = st.columns(3)
+        col_a, col_b = st.columns(2)
         with col_a:
-            if st.button("💾 Enregistrer dans Médecins.xlsx", type="primary"):
-                try:
-                    r_start, r_end = append_to_excel(
-                        MEDECINS_FILE, "Contacts", DOCTOR_COLUMNS,
-                        st.session_state.doctors,
-                    )
-                    count = len(st.session_state.doctors)
-                    st.session_state.doctors = pd.DataFrame(columns=DOCTOR_COLUMNS)
-                    st.success(
-                        f"✅ {count} médecin(s) ajouté(s) dans Médecins.xlsx "
-                        f"(lignes {r_start}→{r_end})"
-                    )
-                    st.rerun()
-                except Exception as exc:
-                    st.error(f"❌ Erreur d'écriture : {exc}")
-        with col_b:
             buf = generate_excel_download(st.session_state.doctors, DOCTOR_COLUMNS, "Contacts")
             st.download_button(
-                "📥 Télécharger séparément", buf,
-                file_name="doctors_import.xlsx",
+                "📥 Télécharger une copie", buf,
+                file_name="Médecins_import.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-        with col_c:
+        with col_b:
             if st.button("🗑️ Réinitialiser médecins"):
                 st.session_state.doctors = pd.DataFrame(columns=DOCTOR_COLUMNS)
                 st.rerun()
@@ -560,14 +551,21 @@ def pharmacy_form():
                 "property_product_pricelist": pricelist or "",
                 "static_portfolio_user_ids": delegate.strip(),
             }
+            row_df = pd.DataFrame([row])
+            try:
+                r_start, r_end = append_to_excel(
+                    PHARMACIES_FILE, "Comptes", PHARMACY_COLUMNS, row_df,
+                )
+                st.success(f"✅ Compte **{row['name']}** enregistré dans Pharmacies.xlsx (ligne {r_start}) !")
+            except Exception as exc:
+                st.error(f"❌ Erreur d'écriture : {exc}")
             st.session_state.pharmacies = pd.concat(
-                [st.session_state.pharmacies, pd.DataFrame([row])], ignore_index=True
+                [st.session_state.pharmacies, row_df], ignore_index=True
             )
-            st.success(f"✅ Compte **{row['name']}** ajouté !")
 
     # --- Preview ---
     if not st.session_state.pharmacies.empty:
-        st.subheader(f"📋 Comptes en attente ({len(st.session_state.pharmacies)})")
+        st.subheader(f"📋 Comptes ajoutés cette session ({len(st.session_state.pharmacies)})")
         st.dataframe(
             st.session_state.pharmacies[
                 ["name", "type_id", "state_id", "Commune",
@@ -576,31 +574,15 @@ def pharmacy_form():
             use_container_width=True, hide_index=True,
         )
 
-        col_a, col_b, col_c = st.columns(3)
+        col_a, col_b = st.columns(2)
         with col_a:
-            if st.button("💾 Enregistrer dans Pharmacies.xlsx", type="primary"):
-                try:
-                    r_start, r_end = append_to_excel(
-                        PHARMACIES_FILE, "Comptes", PHARMACY_COLUMNS,
-                        st.session_state.pharmacies,
-                    )
-                    count = len(st.session_state.pharmacies)
-                    st.session_state.pharmacies = pd.DataFrame(columns=PHARMACY_COLUMNS)
-                    st.success(
-                        f"✅ {count} compte(s) ajouté(s) dans Pharmacies.xlsx "
-                        f"(lignes {r_start}→{r_end})"
-                    )
-                    st.rerun()
-                except Exception as exc:
-                    st.error(f"❌ Erreur d'écriture : {exc}")
-        with col_b:
             buf = generate_excel_download(st.session_state.pharmacies, PHARMACY_COLUMNS, "Comptes")
             st.download_button(
-                "📥 Télécharger séparément", buf,
-                file_name="pharmacies_import.xlsx",
+                "📥 Télécharger une copie", buf,
+                file_name="Pharmacies_import.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-        with col_c:
+        with col_b:
             if st.button("🗑️ Réinitialiser pharmacies"):
                 st.session_state.pharmacies = pd.DataFrame(columns=PHARMACY_COLUMNS)
                 st.rerun()
@@ -627,6 +609,24 @@ def main():
     n_docs = len(existing_docs.dropna(subset=["name"])) if not existing_docs.empty and "name" in existing_docs.columns else 0
     n_pha = len(existing_pha.dropna(subset=["name"])) if not existing_pha.empty and "name" in existing_pha.columns else 0
     st.sidebar.caption(f"📂 Fichiers : {n_docs} médecins / {n_pha} pharmacies")
+
+    # Download filled Excel files
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📥 Télécharger les fichiers")
+    with open(MEDECINS_FILE, "rb") as f:
+        st.sidebar.download_button(
+            f"Médecins.xlsx ({n_docs} fiches)",
+            f.read(),
+            file_name="Médecins.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with open(PHARMACIES_FILE, "rb") as f:
+        st.sidebar.download_button(
+            f"Pharmacies.xlsx ({n_pha} fiches)",
+            f.read(),
+            file_name="Pharmacies.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
     if menu == "Créer un Médecin":
         doctor_form()
