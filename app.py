@@ -608,9 +608,9 @@ def pharmacy_form():
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    st.set_page_config(page_title="CRM Creation Platform", page_icon="🏥", layout="wide")
-    st.title("🏥 CRM Creation Platform")
-    st.caption("Création de fiches Médecins & Pharmacies pour import Odoo")
+    st.set_page_config(page_title="CRM Creation Medecins & Pharmacies", page_icon="🏥", layout="wide")
+    st.title("🏥 CRM Creation Medecins & Pharmacies")
+    st.caption("Création de fiches Médecins & Pharmacies pour importation")
 
     init_state()
 
