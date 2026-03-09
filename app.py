@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import os
+import shutil
 import openpyxl
 from copy import copy
 
@@ -9,10 +10,25 @@ from copy import copy
 # Configuration
 # ---------------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MEDECINS_FILE = os.path.join(BASE_DIR, "Médecins.xlsx")
-PHARMACIES_FILE = os.path.join(BASE_DIR, "Pharmacies.xlsx")
+
+# Reference files (read-only, shipped with the repo)
+MEDECINS_TEMPLATE = os.path.join(BASE_DIR, "Médecins.xlsx")
+PHARMACIES_TEMPLATE = os.path.join(BASE_DIR, "Pharmacies.xlsx")
 ONEKEY_MED_FILE = os.path.join(BASE_DIR, "One key medecin.xlsx")
 ONEKEY_PHA_FILE = os.path.join(BASE_DIR, "one key pharmacie.xlsx")
+
+# Writable data directory (Railway volume or local fallback)
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# Writable Excel files (auto-copied from templates on first run)
+MEDECINS_FILE = os.path.join(DATA_DIR, "Médecins.xlsx")
+PHARMACIES_FILE = os.path.join(DATA_DIR, "Pharmacies.xlsx")
+
+if not os.path.exists(MEDECINS_FILE):
+    shutil.copy2(MEDECINS_TEMPLATE, MEDECINS_FILE)
+if not os.path.exists(PHARMACIES_FILE):
+    shutil.copy2(PHARMACIES_TEMPLATE, PHARMACIES_FILE)
 
 DOCTOR_COLUMNS = [
     "name", "ref", "type_id", "email", "phone", "mobile",
@@ -43,7 +59,7 @@ def load_adresses():
     Excel layout:
       A=state  B=(empty)  C=id  D=name(COMMUNE)  E=state_id(WILAYA)  F=(empty)  G=sector  H=id(sector_id)
     """
-    df = pd.read_excel(MEDECINS_FILE, sheet_name="Adresses", header=0)
+    df = pd.read_excel(MEDECINS_TEMPLATE, sheet_name="Adresses", header=0)
 
     # Communes: column D='name' → commune, column E='state_id' → wilaya, column C='id' → city_id
     communes_df = df[["name", "state_id", "id"]].copy()
@@ -67,7 +83,7 @@ def load_adresses():
 
 @st.cache_data
 def load_medical():
-    df = pd.read_excel(MEDECINS_FILE, sheet_name="Médical", header=0)
+    df = pd.read_excel(MEDECINS_TEMPLATE, sheet_name="Médical", header=0)
     specialities = sorted(df["speciality"].dropna().unique().tolist())
     institutions = sorted(df["institution"].dropna().unique().tolist())
     grades = sorted(df["grade"].dropna().unique().tolist())
@@ -78,7 +94,7 @@ def load_medical():
 
 @st.cache_data
 def load_legendes_med():
-    df = pd.read_excel(MEDECINS_FILE, sheet_name="Legendes", header=0)
+    df = pd.read_excel(MEDECINS_TEMPLATE, sheet_name="Legendes", header=0)
     potentials = df.iloc[:, 0].dropna().unique().tolist()
     pricelists = df.iloc[:, 2].dropna().unique().tolist()
     types = df.iloc[:, 4].dropna().unique().tolist()
@@ -87,7 +103,7 @@ def load_legendes_med():
 
 @st.cache_data
 def load_legendes_pha():
-    df = pd.read_excel(PHARMACIES_FILE, sheet_name="Legendes", header=0)
+    df = pd.read_excel(PHARMACIES_TEMPLATE, sheet_name="Legendes", header=0)
     potentials = df.iloc[:, 0].dropna().unique().tolist()
     pricelists = df.iloc[:, 2].dropna().unique().tolist()
     types = df.iloc[:, 4].dropna().unique().tolist()
