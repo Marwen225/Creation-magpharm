@@ -16,6 +16,7 @@ MEDECINS_TEMPLATE = os.path.join(BASE_DIR, "Médecins.xlsx")
 PHARMACIES_TEMPLATE = os.path.join(BASE_DIR, "Pharmacies.xlsx")
 ONEKEY_MED_FILE = os.path.join(BASE_DIR, "One key medecin.xlsx")
 ONEKEY_PHA_FILE = os.path.join(BASE_DIR, "one key pharmacie.xlsx")
+UTILISATEURS_FILE = os.path.join(BASE_DIR, "Utilisateurs.xlsx")
 
 # Writable data directory (Railway volume or local fallback)
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
@@ -128,6 +129,15 @@ def load_onekey_pharmacies():
     return sorted(names)
 
 
+@st.cache_data
+def load_utilisateurs():
+    """Load delegate names from Utilisateurs.xlsx."""
+    df = pd.read_excel(UTILISATEURS_FILE, usecols=["Nom"])
+    df = df.dropna(subset=["Nom"])
+    names = df["Nom"].astype(str).str.strip().unique().tolist()
+    return sorted(names)
+
+
 # ---------------------------------------------------------------------------
 # Lookups
 # ---------------------------------------------------------------------------
@@ -220,7 +230,7 @@ def init_state():
 # Doctor form
 # ---------------------------------------------------------------------------
 def doctor_form():
-    st.header("➕ Créer un Médecin")
+    st.header("Créer un Médecin")
 
     wilayas, communes_df, sectors_df = load_adresses()
     specialities, institutions, grades, departments, statuses = load_medical()
@@ -274,6 +284,26 @@ def doctor_form():
     with c3:
         sector = st.selectbox("Secteur *", [""] + sectors_df["sector"].tolist(), key="d_sec")
 
+    # --- Delegate search (outside form for instant refresh) ---
+    st.subheader("Délégué")
+    utilisateurs = load_utilisateurs()
+    d_del_search = st.text_input("Rechercher votre nom (min 3 caractères) *", key="d_del_search")
+    selected_delegate = ""
+    if len(d_del_search.strip()) >= 3:
+        query_del = d_del_search.strip().lower()
+        del_matches = [n for n in utilisateurs if query_del in n.lower()][:50]
+        if del_matches:
+            del_choice = st.selectbox(
+                f"Sélectionner votre nom ({len(del_matches)} résultats)",
+                [""] + del_matches,
+                key="d_del_select",
+            )
+            selected_delegate = del_choice
+        else:
+            st.warning("Aucun résultat trouvé. Vérifiez l'orthographe.")
+    elif d_del_search.strip():
+        st.caption("Tapez au moins 3 caractères pour voir les suggestions.")
+
     # --- Other fields inside form ---
     with st.form("doc_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
@@ -292,13 +322,12 @@ def doctor_form():
         with c2:
             street = st.text_input("Adresse *")
             phone = st.text_input("Téléphone *")
-            mobile = st.text_input("Mobile *")
-            email = st.text_input("Email *")
+            mobile = st.text_input("Fax")
+            email = st.text_input("Email")
             potential = st.selectbox("Potentiel *", [""] + potentials)
             pricelist = st.selectbox("Liste de prix", [""] + pricelists)
-            delegate = st.text_input("Délégué(s) * (séparer par virgules)")
 
-        submitted = st.form_submit_button("✅ Ajouter le médecin")
+        submitted = st.form_submit_button("Ajouter le médecin")
 
     if submitted:
         name = selected_name
@@ -327,14 +356,11 @@ def doctor_form():
             errors.append("L'adresse est obligatoire.")
         if not phone.strip():
             errors.append("Le téléphone est obligatoire.")
-        if not mobile.strip():
-            errors.append("Le mobile est obligatoire.")
-        if not email.strip():
-            errors.append("L'email est obligatoire.")
         if not potential:
             errors.append("Le potentiel est obligatoire.")
-        if not delegate.strip():
-            errors.append("Le délégué est obligatoire.")
+        delegate = selected_delegate
+        if not delegate:
+            errors.append("Le délégué est obligatoire (sélectionnez depuis la liste).")
 
         # Check duplicates in session AND in existing Excel file
         if name.strip() and commune:
@@ -358,7 +384,7 @@ def doctor_form():
                 st.error(e)
         else:
             row = {
-                "name": name.strip().upper(),
+                "name": name.strip(),
                 "ref": "",
                 "type_id": type_id,
                 "email": email.strip(),
@@ -381,7 +407,7 @@ def doctor_form():
                 "Secteur (nom complet)": sector,
                 "sector_id/id": get_sector_id(sectors_df, sector),
                 "property_product_pricelist": pricelist or "",
-                "static_portfolio_user_ids": delegate.strip(),
+                "static_portfolio_user_ids": delegate,
             }
             row_df = pd.DataFrame([row])
             try:
@@ -425,7 +451,7 @@ def doctor_form():
 # Pharmacy form
 # ---------------------------------------------------------------------------
 def pharmacy_form():
-    st.header("➕ Créer une Pharmacie / Compte")
+    st.header("Créer une Pharmacie / Compte")
 
     wilayas, communes_df, sectors_df = load_adresses()
     potentials, pricelists, types_pha = load_legendes_pha()
@@ -470,6 +496,26 @@ def pharmacy_form():
     with c3:
         sector = st.selectbox("Secteur *", [""] + sectors_df["sector"].tolist(), key="p_sec")
 
+    # --- Delegate search (outside form for instant refresh) ---
+    st.subheader("👤 Délégué")
+    utilisateurs = load_utilisateurs()
+    p_del_search = st.text_input("Rechercher votre nom (min 3 caractères) *", key="p_del_search")
+    selected_delegate = ""
+    if len(p_del_search.strip()) >= 3:
+        query_del = p_del_search.strip().lower()
+        del_matches = [n for n in utilisateurs if query_del in n.lower()][:50]
+        if del_matches:
+            del_choice = st.selectbox(
+                f"Sélectionner votre nom ({len(del_matches)} résultats)",
+                [""] + del_matches,
+                key="p_del_select",
+            )
+            selected_delegate = del_choice
+        else:
+            st.warning("Aucun résultat trouvé. Vérifiez l'orthographe.")
+    elif p_del_search.strip():
+        st.caption("Tapez au moins 3 caractères pour voir les suggestions.")
+
     # --- Other fields ---
     with st.form("pha_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
@@ -477,18 +523,17 @@ def pharmacy_form():
             type_id = st.selectbox("Type *", types_pha)
             street = st.text_input("Adresse *")
             phone = st.text_input("Téléphone *")
-            mobile = st.text_input("Mobile *")
-            email = st.text_input("Email *")
+            mobile = st.text_input("Fax")
+            email = st.text_input("Email")
             potential = st.selectbox("Potentiel *", [""] + potentials)
             pricelist = st.selectbox("Liste de prix", [""] + pricelists)
         with c2:
-            company_registry = st.text_input("company_registry *")
-            vat = st.text_input("vat *")
-            tax_article = st.text_input("tax_article *")
-            sin = st.text_input("sin *")
-            delegate = st.text_input("Délégué(s) * (séparer par virgules)")
+            company_registry = st.text_input("Registre de Commerce (RC)")
+            vat = st.text_input("NIF (N° Identification Fiscale)")
+            tax_article = st.text_input("Article d'Imposition")
+            sin = st.text_input("NIS (N° Identification Statistique)")
 
-        submitted = st.form_submit_button("✅ Ajouter la pharmacie")
+        submitted = st.form_submit_button("Ajouter la pharmacie")
 
     if submitted:
         name = selected_name
@@ -505,22 +550,11 @@ def pharmacy_form():
             errors.append("L'adresse est obligatoire.")
         if not phone.strip():
             errors.append("Le téléphone est obligatoire.")
-        if not mobile.strip():
-            errors.append("Le mobile est obligatoire.")
-        if not email.strip():
-            errors.append("L'email est obligatoire.")
         if not potential:
             errors.append("Le potentiel est obligatoire.")
-        if not company_registry.strip():
-            errors.append("Le registre de commerce est obligatoire.")
-        if not vat.strip():
-            errors.append("Le NIF est obligatoire.")
-        if not tax_article.strip():
-            errors.append("L'article d'imposition est obligatoire.")
-        if not sin.strip():
-            errors.append("Le NIS est obligatoire.")
-        if not delegate.strip():
-            errors.append("Le délégué est obligatoire.")
+        delegate = selected_delegate
+        if not delegate:
+            errors.append("Le délégué est obligatoire (sélectionnez depuis la liste).")
 
         # Check duplicates in session AND in existing Excel file
         if name.strip() and commune:
@@ -544,7 +578,7 @@ def pharmacy_form():
                 st.error(e)
         else:
             row = {
-                "name": name.strip().upper(),
+                "name": name.strip(),
                 "ref": "",
                 "type_id": type_id,
                 "email": email.strip(),
@@ -565,7 +599,7 @@ def pharmacy_form():
                 "tax_article": tax_article.strip(),
                 "sin": sin.strip(),
                 "property_product_pricelist": pricelist or "",
-                "static_portfolio_user_ids": delegate.strip(),
+                "static_portfolio_user_ids": delegate,
             }
             row_df = pd.DataFrame([row])
             try:
@@ -610,29 +644,31 @@ def pharmacy_form():
 def main():
     st.set_page_config(page_title="Magpharm - Création CRM", page_icon="💊", layout="wide")
 
-    # --- Custom CSS (charte graphique Magpharm : gris + rouge) ---
+    # --- Custom CSS (charte graphique Magpharm : gris #6C6E6F + rouge #E4211A) ---
     st.markdown("""
     <style>
         /* Header bar */
         .main-header {
-            background: linear-gradient(135deg, #6C6E6F 0%, #4A4A4A 100%);
+            background: #FFFFFF;
             padding: 1.2rem 2rem;
             border-radius: 10px;
             margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
             gap: 1.5rem;
+            border-bottom: 3px solid #E4211A;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .main-header img {
             height: 60px;
         }
         .main-header h1 {
-            color: #FFFFFF;
+            color: #6C6E6F;
             font-size: 1.8rem;
             margin: 0;
         }
         .main-header p {
-            color: #D0D0D0;
+            color: #999999;
             font-size: 0.95rem;
             margin: 0;
         }
@@ -643,25 +679,25 @@ def main():
         /* Buttons */
         .stButton > button[kind="primary"],
         .stFormSubmitButton > button {
-            background-color: #C8102E !important;
+            background-color: #E4211A !important;
             color: white !important;
             border: none !important;
         }
         .stButton > button[kind="primary"]:hover,
         .stFormSubmitButton > button:hover {
-            background-color: #A00D24 !important;
+            background-color: #C41B15 !important;
         }
         /* Metrics */
         [data-testid="stMetricValue"] {
-            color: #C8102E;
+            color: #E4211A;
         }
         /* Subheaders */
         .stSubheader, h2, h3 {
-            color: #4A4A4A !important;
+            color: #6C6E6F !important;
         }
         /* Section dividers */
         hr {
-            border-color: #C8102E !important;
+            border-color: #E4211A !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -684,7 +720,12 @@ def main():
     init_state()
 
     # --- Sidebar with logo ---
-    st.sidebar.image(logo_path, width=180)
+    st.sidebar.markdown(
+        f'<div style="text-align:center;padding:0.5rem 0;">'
+        f'<img src="data:image/png;base64,{logo_b64}" style="width:180px;">'
+        f'</div>',
+        unsafe_allow_html=True
+    )
     st.sidebar.markdown("---")
     menu = st.sidebar.radio("Navigation", ["Créer un Médecin", "Créer une Pharmacie"])
     st.sidebar.markdown("---")
