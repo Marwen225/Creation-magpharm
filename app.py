@@ -758,6 +758,22 @@ def main():
                 file_name="Pharmacies.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
+
+        st.sidebar.subheader("🗑️ Réinitialiser les données")
+        st.sidebar.caption("Remet les fichiers Excel à zéro (vide les fiches enregistrées).")
+        col_r1, col_r2 = st.sidebar.columns(2)
+        with col_r1:
+            if st.button("Vider Médecins", key="reset_med"):
+                shutil.copy2(MEDECINS_TEMPLATE, MEDECINS_FILE)
+                st.session_state.doctors = pd.DataFrame(columns=DOCTOR_COLUMNS)
+                st.sidebar.success("Médecins.xlsx vidé !")
+                st.rerun()
+        with col_r2:
+            if st.button("Vider Pharmacies", key="reset_pha"):
+                shutil.copy2(PHARMACIES_TEMPLATE, PHARMACIES_FILE)
+                st.session_state.pharmacies = pd.DataFrame(columns=PHARMACY_COLUMNS)
+                st.sidebar.success("Pharmacies.xlsx vidé !")
+                st.rerun()
     elif admin_pwd:
         st.sidebar.error("Mot de passe incorrect")
 
