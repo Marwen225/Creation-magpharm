@@ -140,12 +140,17 @@ def load_utilisateurs():
     return sorted(names)
 
 
+def _normalize_name(name):
+    """Normalize a name into a frozenset of uppercase words for order-independent comparison."""
+    return frozenset(str(name).strip().upper().split())
+
+
 @st.cache_data
 def load_univers_contacts():
     """Load existing doctor names from Contacts.xlsx (univers Magpharm)."""
     df = pd.read_excel(CONTACTS_UNIVERS_FILE, usecols=["Nom"])
     df = df.dropna(subset=["Nom"])
-    return set(df["Nom"].astype(str).str.strip().str.upper().tolist())
+    return set(df["Nom"].apply(_normalize_name))
 
 
 @st.cache_data
@@ -153,7 +158,7 @@ def load_univers_comptes():
     """Load existing pharmacy names from Comptes.xlsx (univers Magpharm)."""
     df = pd.read_excel(COMPTES_UNIVERS_FILE, usecols=["Nom"])
     df = df.dropna(subset=["Nom"])
-    return set(df["Nom"].astype(str).str.strip().str.upper().tolist())
+    return set(df["Nom"].apply(_normalize_name))
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +292,14 @@ def doctor_form():
         st.caption("Tapez au moins 3 caractères pour voir les suggestions.")
         selected_name = search_name.strip()
 
+    # --- Vérification immédiate dans l'univers Magpharm ---
+    nom_bloque = False
+    if selected_name:
+        univers_contacts = load_univers_contacts()
+        if _normalize_name(selected_name) in univers_contacts:
+            st.error("⚠️ Ce médecin existe déjà dans l'univers Magpharm.le superviseur.doit faire le partage.")
+            nom_bloque = True
+
     # --- Wilaya → Commune (outside form for instant refresh) ---
     st.subheader("📍 Localisation")
     c1, c2, c3 = st.columns(3)
@@ -381,11 +394,9 @@ def doctor_form():
             errors.append("Le délégué est obligatoire (sélectionnez depuis la liste).")
 
         # Check duplicates in session AND in existing Excel file
-        if name.strip() and commune:
-            # Check against univers Magpharm (Contacts.xlsx)
-            univers_contacts = load_univers_contacts()
-            if name.strip().upper() in univers_contacts:
-                errors.append("\u26a0\ufe0f Ce m\u00e9decin existe d\u00e9j\u00e0 dans l'univers Magpharm. Demandez le partage \u00e0 votre superviseur.")
+        if nom_bloque:
+            errors.append("\u26a0\ufe0f Ce m\u00e9decin existe d\u00e9j\u00e0 dans l'univers Magpharm. Demandez le partage \u00e0 votre superviseur.")
+        if name.strip() and commune and not nom_bloque:
             dup = st.session_state.doctors[
                 (st.session_state.doctors["name"].str.upper() == name.strip().upper())
                 & (st.session_state.doctors["Commune"].str.upper() == commune.upper())
@@ -503,6 +514,14 @@ def pharmacy_form():
         st.caption("Tapez au moins 3 caractères pour voir les suggestions.")
         selected_name = search_name.strip()
 
+    # --- Vérification immédiate dans l'univers Magpharm ---
+    nom_bloque = False
+    if selected_name:
+        univers_comptes = load_univers_comptes()
+        if _normalize_name(selected_name) in univers_comptes:
+            st.error("⚠️ Cette pharmacie existe déjà dans l'univers Magpharm. Demandez le partage à votre superviseur.")
+            nom_bloque = True
+
     # --- Wilaya → Commune ---
     st.subheader("📍 Localisation")
     c1, c2, c3 = st.columns(3)
@@ -519,7 +538,7 @@ def pharmacy_form():
         sector = st.selectbox("Secteur *", [""] + sectors_df["sector"].tolist(), key="p_sec")
 
     # --- Delegate search (outside form for instant refresh) ---
-    st.subheader("👤 Délégué")
+    st.subheader("Délégué")
     utilisateurs = load_utilisateurs()
     p_del_search = st.text_input("Rechercher votre nom (min 3 caractères) *", key="p_del_search")
     selected_delegate = ""
@@ -579,11 +598,9 @@ def pharmacy_form():
             errors.append("Le délégué est obligatoire (sélectionnez depuis la liste).")
 
         # Check duplicates in session AND in existing Excel file
-        if name.strip() and commune:
-            # Check against univers Magpharm (Comptes.xlsx)
-            univers_comptes = load_univers_comptes()
-            if name.strip().upper() in univers_comptes:
-                errors.append("\u26a0\ufe0f Cette pharmacie existe d\u00e9j\u00e0 dans l'univers Magpharm. Demandez le partage \u00e0 votre superviseur.")
+        if nom_bloque:
+            errors.append("\u26a0\ufe0f Cette pharmacie existe d\u00e9j\u00e0 dans l'univers Magpharm. Demandez le partage \u00e0 votre superviseur.")
+        if name.strip() and commune and not nom_bloque:
             dup = st.session_state.pharmacies[
                 (st.session_state.pharmacies["name"].str.upper() == name.strip().upper())
                 & (st.session_state.pharmacies["Commune"].str.upper() == commune.upper())
