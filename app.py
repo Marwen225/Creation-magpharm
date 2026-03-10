@@ -608,12 +608,84 @@ def pharmacy_form():
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    st.set_page_config(page_title="CRM Creation Medecins & Pharmacies", page_icon="🏥", layout="wide")
-    st.title("🏥 CRM Creation Medecins & Pharmacies")
-    st.caption("Création de fiches Médecins & Pharmacies pour importation")
+    st.set_page_config(page_title="Magpharm - Création CRM", page_icon="💊", layout="wide")
+
+    # --- Custom CSS (charte graphique Magpharm : gris + rouge) ---
+    st.markdown("""
+    <style>
+        /* Header bar */
+        .main-header {
+            background: linear-gradient(135deg, #6C6E6F 0%, #4A4A4A 100%);
+            padding: 1.2rem 2rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .main-header img {
+            height: 60px;
+        }
+        .main-header h1 {
+            color: #FFFFFF;
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        .main-header p {
+            color: #D0D0D0;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
+            background-color: #F5F5F5;
+        }
+        /* Buttons */
+        .stButton > button[kind="primary"],
+        .stFormSubmitButton > button {
+            background-color: #C8102E !important;
+            color: white !important;
+            border: none !important;
+        }
+        .stButton > button[kind="primary"]:hover,
+        .stFormSubmitButton > button:hover {
+            background-color: #A00D24 !important;
+        }
+        /* Metrics */
+        [data-testid="stMetricValue"] {
+            color: #C8102E;
+        }
+        /* Subheaders */
+        .stSubheader, h2, h3 {
+            color: #4A4A4A !important;
+        }
+        /* Section dividers */
+        hr {
+            border-color: #C8102E !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # --- Logo + Title header ---
+    import base64
+    logo_path = os.path.join(BASE_DIR, "Magpharm-logo.jpeg")
+    with open(logo_path, "rb") as f:
+        logo_b64 = base64.b64encode(f.read()).decode()
+    st.markdown(f"""
+    <div class="main-header">
+        <img src="data:image/jpeg;base64,{logo_b64}" alt="Magpharm">
+        <div>
+            <h1>Création CRM Médecins & Pharmacies</h1>
+            <p>Plateforme de saisie pour importation Odoo</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     init_state()
 
+    # --- Sidebar with logo ---
+    st.sidebar.image(logo_path, width=180)
+    st.sidebar.markdown("---")
     menu = st.sidebar.radio("Navigation", ["Créer un Médecin", "Créer une Pharmacie"])
     st.sidebar.markdown("---")
     st.sidebar.metric("Mes médecins (session)", len(st.session_state.doctors))
