@@ -17,6 +17,8 @@ PHARMACIES_TEMPLATE = os.path.join(BASE_DIR, "Pharmacies.xlsx")
 ONEKEY_MED_FILE = os.path.join(BASE_DIR, "One key medecin.xlsx")
 ONEKEY_PHA_FILE = os.path.join(BASE_DIR, "one key pharmacie.xlsx")
 UTILISATEURS_FILE = os.path.join(BASE_DIR, "Utilisateurs.xlsx")
+CONTACTS_UNIVERS_FILE = os.path.join(BASE_DIR, "Contacts.xlsx")
+COMPTES_UNIVERS_FILE = os.path.join(BASE_DIR, "Comptes.xlsx")
 
 # Writable data directory (Railway volume or local fallback)
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
@@ -136,6 +138,22 @@ def load_utilisateurs():
     df = df.dropna(subset=["Nom"])
     names = df["Nom"].astype(str).str.strip().unique().tolist()
     return sorted(names)
+
+
+@st.cache_data
+def load_univers_contacts():
+    """Load existing doctor names from Contacts.xlsx (univers Magpharm)."""
+    df = pd.read_excel(CONTACTS_UNIVERS_FILE, usecols=["Nom"])
+    df = df.dropna(subset=["Nom"])
+    return set(df["Nom"].astype(str).str.strip().str.upper().tolist())
+
+
+@st.cache_data
+def load_univers_comptes():
+    """Load existing pharmacy names from Comptes.xlsx (univers Magpharm)."""
+    df = pd.read_excel(COMPTES_UNIVERS_FILE, usecols=["Nom"])
+    df = df.dropna(subset=["Nom"])
+    return set(df["Nom"].astype(str).str.strip().str.upper().tolist())
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +382,10 @@ def doctor_form():
 
         # Check duplicates in session AND in existing Excel file
         if name.strip() and commune:
+            # Check against univers Magpharm (Contacts.xlsx)
+            univers_contacts = load_univers_contacts()
+            if name.strip().upper() in univers_contacts:
+                errors.append("\u26a0\ufe0f Ce m\u00e9decin existe d\u00e9j\u00e0 dans l'univers Magpharm. Demandez le partage \u00e0 votre superviseur.")
             dup = st.session_state.doctors[
                 (st.session_state.doctors["name"].str.upper() == name.strip().upper())
                 & (st.session_state.doctors["Commune"].str.upper() == commune.upper())
@@ -558,6 +580,10 @@ def pharmacy_form():
 
         # Check duplicates in session AND in existing Excel file
         if name.strip() and commune:
+            # Check against univers Magpharm (Comptes.xlsx)
+            univers_comptes = load_univers_comptes()
+            if name.strip().upper() in univers_comptes:
+                errors.append("\u26a0\ufe0f Cette pharmacie existe d\u00e9j\u00e0 dans l'univers Magpharm. Demandez le partage \u00e0 votre superviseur.")
             dup = st.session_state.pharmacies[
                 (st.session_state.pharmacies["name"].str.upper() == name.strip().upper())
                 & (st.session_state.pharmacies["Commune"].str.upper() == commune.upper())
