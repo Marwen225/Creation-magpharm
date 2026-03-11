@@ -318,7 +318,7 @@ def doctor_form():
     # --- Delegate search (outside form for instant refresh) ---
     st.subheader("Délégué")
     utilisateurs = load_utilisateurs()
-    d_del_search = st.text_input("Rechercher votre nom (min 3 caractères) *", key="d_del_search")
+    d_del_search = st.text_input("Insérer le nom du délégué (min 3 caractères) *", key="d_del_search")
     selected_delegate = ""
     if len(d_del_search.strip()) >= 3:
         query_del = d_del_search.strip().lower()
