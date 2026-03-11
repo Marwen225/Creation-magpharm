@@ -540,7 +540,7 @@ def pharmacy_form():
     # --- Delegate search (outside form for instant refresh) ---
     st.subheader("Délégué")
     utilisateurs = load_utilisateurs()
-    p_del_search = st.text_input("Rechercher votre nom (min 3 caractères) *", key="p_del_search")
+    p_del_search = st.text_input("Insérer le nom du délégué (min 3 caractères) *", key="p_del_search")
     selected_delegate = ""
     if len(p_del_search.strip()) >= 3:
         query_del = p_del_search.strip().lower()
