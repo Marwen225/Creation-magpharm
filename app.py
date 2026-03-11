@@ -742,6 +742,34 @@ def main():
         hr {
             border-color: #E4211A !important;
         }
+        /* ---- BEX Footer ---- */
+        .bex-footer {
+            margin-top: 3rem;
+            padding: 1.2rem 0 0;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        /* Remove Streamlit default bottom padding */
+        .block-container {
+            padding-bottom: 0 !important;
+        }
+        footer {
+            display: none !important;
+        }
+        .bex-footer img {
+            height: 36px;
+            margin-bottom: 0.4rem;
+            opacity: 0.85;
+        }
+        .bex-footer .bex-text {
+            font-size: 0.78rem;
+            color: #aaa;
+        }
+        .bex-footer .bex-text span {
+            color: #E4211A;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -755,7 +783,7 @@ def main():
         <img src="data:image/jpeg;base64,{logo_b64}" alt="Magpharm">
         <div>
             <h1>Création CRM Médecins & Pharmacies</h1>
-            <p>Plateforme de saisie pour importation Odoo</p>
+            <p>Plateforme de saisie pour Création</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -824,6 +852,14 @@ def main():
         doctor_form()
     else:
         pharmacy_form()
+
+    # --- BEX Signature Footer ---
+    st.markdown(f"""
+    <div class="bex-footer">
+        <img src="data:image/jpeg;base64,{logo_b64}" alt="Magpharm">
+        <div class="bex-text">Solution proposée par <span>BEX</span> &middot; &copy; 2026</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
