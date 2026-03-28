@@ -807,7 +807,7 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔒 Espace Admin")
     admin_pwd = st.sidebar.text_input("Mot de passe", type="password", key="admin_pwd")
-    if admin_pwd == "creationcontactsmagpharm2026crm":
+    if admin_pwd == "marwen2026moimoi":
         existing_docs = load_existing_records(MEDECINS_FILE, "Contacts")
         existing_pha = load_existing_records(PHARMACIES_FILE, "Comptes")
         n_docs = len(existing_docs.dropna(subset=["name"])) if not existing_docs.empty and "name" in existing_docs.columns else 0
